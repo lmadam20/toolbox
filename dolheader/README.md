@@ -8,16 +8,19 @@ a human readable format.
 
 Usage
 ------------------------------------------------
-**Usage:** _./<executable_name> [-a] <dol file>_
+**Usage:** `./dolheader [-a] <dol file>`  
+Option(s):
+* `-a` to display _all_ sections (even empty one)  
 
-**Example usage:**
-_./dolheader -a boot.dol_
+Example usage:
+------------------------------------------------
+`./dolheader -a boot.dol`
 
 Compiling
 -----------------------------------------------
-With GCC: _gcc -o dolheader dolheader.c_
+With GCC: `gcc -o dolheader dolheader.c`
 
 (If your compiler outputs "Endianness of 
 your Machine is not supported!", try to
-specify the endianness by define
-ENDIANNESS_LITTLE or ENDIANNESS_BIG)
+specify the endianness by defining
+`ENDIANNESS_LITTLE` or `ENDIANNESS_BIG`)

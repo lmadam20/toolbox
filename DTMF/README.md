@@ -9,10 +9,11 @@ outputs the audio data to stdout
 
 Usage
 ---------------------------------------
-**Usage:** _./<executable_name> <DTMF keys>_
+**Usage:** `./DTMF <DTMF keys>` 
 
-**Example usage:**
-_./DTMF 0123456789ABCD*# > test.raw_
+Example usage:
+---------------------------------------
+`./DTMF 0123456789ABCD*# > test.raw`
 
 Notes
 ---------------------------------------
@@ -21,7 +22,7 @@ tools like ffmpeg.
 
 Compiling
 ---------------------------------------
-With GCC: _gcc -o DTMF dtmf.c -lm_
+With GCC: `gcc -o DTMF dtmf.c -lm`
 
 TODO
 ---------------------------------------
