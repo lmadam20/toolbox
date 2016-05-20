@@ -3,13 +3,13 @@ DTMF
 Copyright (c) 2016 Leon Adam
 (see file 'LICENSE' for licensing information)
 
-Creates DTMF tones with a approx. 1 key/s and
+Creates DTMF tones with approx. 1 key/s and
 outputs the audio data to stdout
 
 
 Usage
 ---------------------------------------
-**Usage:** `./DTMF <DTMF keys>` 
+**Usage:** `./DTMF <DTMF keys> [-t <duration of tone in ms>] [-b <duration of break in ms>]`
 
 Example usage:
 ---------------------------------------
@@ -26,5 +26,4 @@ With GCC: `gcc -o DTMF dtmf.c -lm`
 
 TODO
 ---------------------------------------
-* Adjustable tone speed
 * Implement dial tone

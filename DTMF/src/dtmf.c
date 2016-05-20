@@ -20,7 +20,7 @@ limitations under the License.
  * dtmf.c: Creates DTMF tones with a approx. 1 key/s and
  * outputs the audio data to stdout
  *
- * usage: ./<executable_name> <dtmf_keys>
+ * usage: ./DTMF <dtmf_keys> [-t <duration of tone in ms>] [-b <duration of break in ms>]
  *
  * Example usage:
  * ./DTMF 0123456789ABCD*# > test.raw
@@ -36,9 +36,13 @@ limitations under the License.
 #include <math.h>
 #include <string.h>
 
+#define SAMPLE_RATE 44100
+#define MAX_TONE_DURATION 44100
+#define MAX_BREAK_DURATION 44100
+
 void usage(char* prog_name)
 {
-	fprintf(stderr, "usage: %s [dtmf key(s)]\n", prog_name);
+	fprintf(stderr, "usage: %s <dtmf key(s)> [-t <duration of tone in ms>] [-b <duration of break in ms>]\n", prog_name);
 }
 
 int isValidKey(char key)
@@ -94,7 +98,7 @@ int mix(int a, int b)
 	return (a + b) / 2;
 }
 
-int dtmf(char* keys, void* sample_buffer)
+int dtmf(char* keys, void* sample_buffer, int tone_duration, int break_duration)
 {
 	int ret = 0;
 	int keys_length = strlen(keys);
@@ -102,7 +106,7 @@ int dtmf(char* keys, void* sample_buffer)
 	if (!areValidKeys(keys, keys_length))
 	{
 		fprintf(stderr, "Key string is invalid!\n");
-		ret = -1;
+		return -1;
 	}
 
 	int i;
@@ -114,10 +118,10 @@ int dtmf(char* keys, void* sample_buffer)
 	{
 		getFrequencies(keys, i, &freqLow, &freqHigh);
 		int s;
-		for (s = 0; s <= 33075; s++) // 33075 equals to 3/4 seconds
+		for (s = 0; s <= ceil(SAMPLE_RATE / 1000 * tone_duration); s++)
 		{
-			int16_t lowSample = sine_t(s, 30000, freqLow, 44100); // Create the low frequency sample
-			int16_t highSample = sine_t(s, 30000, freqHigh, 44100); // Create the high frequency sample
+			int16_t lowSample = sine_t(s, 30000, freqLow, SAMPLE_RATE); // Create the low frequency sample
+			int16_t highSample = sine_t(s, 30000, freqHigh, SAMPLE_RATE); // Create the high frequency sample
 			int16_t sample = mix(lowSample, highSample); // Mix both
 
 			*buf = sample; // Save
@@ -126,10 +130,10 @@ int dtmf(char* keys, void* sample_buffer)
 
 		// Not need to set it to zero here (buffer has already been
 		// cleared by memset(...) in main)
-		buf += 11025;
+		buf += (int16_t)ceil(SAMPLE_RATE / 1000 * break_duration);
 	}
 
-	return ret;
+	return 0;
 }
 
 int main(int argc, char* argv[])
@@ -140,19 +144,78 @@ int main(int argc, char* argv[])
 		return -1;
 	}
 
-	long sample_buffer_size = strlen(argv[1]) * 2 * 44100 + 8192; // Sample buffer size = Number of keys * Length of Sample *
-	                                                              // Samplerate + Additional Padding
+	int tone_duration = 750;
+	int break_duration = 250;
+
+	int i;
+
+	char* keystring = NULL;
+
+	for (i = 1; i < argc; i++)
+	{
+		if (!strcmp(argv[i], "-t"))
+		{
+			i++;
+			if (i >= argc)
+			{
+				fprintf(stderr, "No tone duration value given!\n");
+				usage(argv[0]);
+				return -1;
+			}
+			tone_duration = atoi(argv[i]);
+			if (tone_duration < 1 || tone_duration > MAX_TONE_DURATION)
+			{
+				fprintf(stderr, "Tone duration is out of range (valid range: %i to %i)\n", 1, MAX_TONE_DURATION);
+				usage(argv[0]);
+				return -1;
+			}
+		}
+		else if (!strcmp(argv[i], "-b"))
+		{
+			i++;
+			if (i >= argc)
+			{
+				fprintf(stderr, "No tone duration value given!\n");
+				usage(argv[0]);
+				return -1;
+			}
+			break_duration = atoi(argv[i]);
+			if (break_duration < 1 || break_duration > MAX_BREAK_DURATION)
+			{
+				fprintf(stderr, "Break duration is out of range (valid range: %i to %i)\n", 1, MAX_BREAK_DURATION);
+				usage(argv[0]);
+				return -1;
+			}
+		}
+		else
+		{
+			keystring = argv[i];
+		}
+	}
+
+	if (!keystring)
+	{
+		fprintf(stderr, "No keystring given!\n");
+		usage(argv[0]);
+		return -1;
+	}
+
+	long sample_buffer_size = (strlen(keystring) * ceil((SAMPLE_RATE / 1000 * 
+					(tone_duration + break_duration)))) * 2 + 8192; // Sample buffer size =
+											// Number of keys * Length of Tone with break *
+								                        // + Additional Padding
+
 
 	void* sample_buffer = malloc(sample_buffer_size);
 	if (!sample_buffer)
 	{
-		fprintf(stderr, "Couldn't allocate sample buffer!\n");
+		fprintf(stderr, "Couldn't allocate sample buffer! (sample_buffer_size = %lu)\n", sample_buffer_size);
 		return -2;
 	}
 
 	memset(sample_buffer, 0, sample_buffer_size); // Clear the buffer
 
-	int ret = dtmf(argv[1], sample_buffer);
+	int ret = dtmf(keystring, sample_buffer, tone_duration, break_duration);
 	if (ret)
 	{
 		fprintf(stderr, "Couldn't generate tones...\n");
