@@ -20,7 +20,7 @@ limitations under the License.
  * dtmf.c: Creates DTMF tones with a approx. 1 key/s and
  * outputs the audio data to stdout
  *
- * usage: ./DTMF <dtmf_keys> [-t <duration of tone in ms>] [-b <duration of break in ms>]
+ * usage: ./DTMF <dtmf_keys> [-t <duration of tone in ms>] [-b <duration of break in ms>] [-d <duration of dial tone in ms>]
  *
  * Example usage:
  * ./DTMF 0123456789ABCD*# > test.raw
@@ -40,9 +40,11 @@ limitations under the License.
 #define MAX_TONE_DURATION 44100
 #define MAX_BREAK_DURATION 44100
 
+#define DTONE_TYPE_EUROPE_STANDARD 1
+
 void usage(char* prog_name)
 {
-	fprintf(stderr, "usage: %s <dtmf key(s)> [-t <duration of tone in ms>] [-b <duration of break in ms>]\n", prog_name);
+	fprintf(stderr, "usage: %s <dtmf key(s)> [-t <duration of tone in ms>] [-b <duration of break in ms>] [-d <duration of dial tone in ms>]\n", prog_name);
 }
 
 int isValidKey(char key)
@@ -98,6 +100,23 @@ int mix(int a, int b)
 	return (a + b) / 2;
 }
 
+int dial_tone(void* sample_buffer, int dtype, int duration_samples)
+{
+	int i;
+	int16_t* buf = (int16_t*)sample_buffer;
+
+	for (i = 0; i < duration_samples; i++)
+	{
+		if (dtype == DTONE_TYPE_EUROPE_STANDARD)
+			*buf = sine_t(i, 30000, 425, SAMPLE_RATE);
+		buf++;
+	}
+
+	buf += 4096;
+
+	return 0;
+}
+
 int dtmf(char* keys, void* sample_buffer, int tone_duration, int break_duration)
 {
 	int ret = 0;
@@ -146,6 +165,8 @@ int main(int argc, char* argv[])
 
 	int tone_duration = 750;
 	int break_duration = 250;
+	int dial_tone_duration = 1000;
+	int dtone_type = DTONE_TYPE_EUROPE_STANDARD;
 
 	int i;
 
@@ -175,7 +196,7 @@ int main(int argc, char* argv[])
 			i++;
 			if (i >= argc)
 			{
-				fprintf(stderr, "No tone duration value given!\n");
+				fprintf(stderr, "No break duration value given!\n");
 				usage(argv[0]);
 				return -1;
 			}
@@ -183,6 +204,23 @@ int main(int argc, char* argv[])
 			if (break_duration < 1 || break_duration > MAX_BREAK_DURATION)
 			{
 				fprintf(stderr, "Break duration is out of range (valid range: %i to %i)\n", 1, MAX_BREAK_DURATION);
+				usage(argv[0]);
+				return -1;
+			}
+		}
+		else if (!strcmp(argv[i], "-d"))
+		{
+			i++;
+			if (i >= argc)
+			{
+				fprintf(stderr, "No dial tone duration value given!\n");
+				usage(argv[0]);
+				return -1;
+			}
+			dial_tone_duration = atoi(argv[i]);
+			if (dial_tone_duration < 1)
+			{
+				fprintf(stderr, "Dial tone duration is out of range (valid range: %i to whatever)\n", 1);
 				usage(argv[0]);
 				return -1;
 			}
@@ -200,10 +238,11 @@ int main(int argc, char* argv[])
 		return -1;
 	}
 
+	long num_dtone_samples = floor(dial_tone_duration / 1000) * 44100 + ceil(SAMPLE_RATE / 1000 * (dial_tone_duration % 1000));
 	long sample_buffer_size = (strlen(keystring) * ceil((SAMPLE_RATE / 1000 * 
-					(tone_duration + break_duration)))) * 2 + 8192; // Sample buffer size =
-											// Number of keys * Length of Tone with break *
-								                        // + Additional Padding
+					(tone_duration + break_duration))) + num_dtone_samples) * 2 + 8192; 	// Sample buffer size =
+														// Number of keys * Length of Tone with break *
+								                        			// + Additional Padding
 
 
 	void* sample_buffer = malloc(sample_buffer_size);
@@ -215,7 +254,15 @@ int main(int argc, char* argv[])
 
 	memset(sample_buffer, 0, sample_buffer_size); // Clear the buffer
 
-	int ret = dtmf(keystring, sample_buffer, tone_duration, break_duration);
+	int ret = dial_tone(sample_buffer, dtone_type, num_dtone_samples);
+	if (ret)
+	{
+		fprintf(stderr, "Couldn't generate dial tone...\n");
+		free(sample_buffer);
+		return ret - 2;
+	}
+
+	ret = dtmf(keystring, sample_buffer + num_dtone_samples * 2, tone_duration, break_duration);
 	if (ret)
 	{
 		fprintf(stderr, "Couldn't generate tones...\n");

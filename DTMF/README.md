@@ -9,7 +9,7 @@ outputs the audio data to stdout
 
 Usage
 ---------------------------------------
-**Usage:** `./DTMF <DTMF keys> [-t <duration of tone in ms>] [-b <duration of break in ms>]`
+**Usage:** `./DTMF <DTMF keys> [-t <duration of tone in ms>] [-b <duration of break in ms>] [-d <duration of dial tone in ms>]`
 
 Example usage:
 ---------------------------------------
@@ -23,7 +23,3 @@ tools like ffmpeg.
 Compiling
 ---------------------------------------
 With GCC: `gcc -o DTMF dtmf.c -lm`
-
-TODO
----------------------------------------
-* Implement dial tone
