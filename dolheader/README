@@ -1,14 +1,13 @@
 dolheader
 ==========
-Copyright (c) 2016 Leon Adam
-(see file 'LICENSE' for licensing information)
-
 Prints out the header of a executable dol file in
 a human readable format.
 
 Usage
 ---------------------------------------
 Usage: ./<executable_name> [-a] <dol file>
+Option(s):
+ * -a to display all sections (event empty ones)
 
 Example usage:
 ./dolheader -a boot.dol
@@ -21,3 +20,7 @@ With GCC: gcc -o dolheader dolheader.c
 your Machine is not supported!", try to
 specify the endianness by define
 ENDIANNESS_LITTLE or ENDIANNESS_BIG)
+
+License
+---------------------------------------
+See the file 'LICENSE'
