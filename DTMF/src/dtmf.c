@@ -61,12 +61,12 @@ int isValidKey(char key)
 int areValidKeys(char* keys, int keys_length)
 {
 	int i;
-	int valid = 1;
 	for (i = 0; i < keys_length; i++)
 	{
-		if (valid) valid = isValidKey(*((char*)keys + i));
+		if (!isValidKey(*((char*)keys + i)))
+			return 0;
 	}
-	return valid;
+	return 1;
 }
 
 void getFrequencies(char* keys, int i, int* freqLow, int* freqHigh)
